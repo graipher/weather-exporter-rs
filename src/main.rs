@@ -39,10 +39,10 @@ async fn main() {
     let exporter = prometheus_exporter::start(binding).unwrap();
 
     let mut params: HashMap<&str, String> = HashMap::new();
-    params.insert("lat", env::var("LAT").unwrap().to_owned());
-    params.insert("lon", env::var("LON").unwrap().to_owned());
-    params.insert("units", env::var("UNITS").unwrap().to_owned());
-    params.insert("appid", env::var("APPID").unwrap().to_owned());
+    params.insert("lat", env::var("LAT").expect("LAT not set").to_owned());
+    params.insert("lon", env::var("LON").expect("LON not set").to_owned());
+    params.insert("units", env::var("UNITS").expect("UNITS not set").to_owned());
+    params.insert("appid", env::var("APPID").expect("APPID not set").to_owned());
     let client = Client::new();
 
     let temperature = register_gauge_vec!("weather_temperature", "Outside temperature in °C", &["city"]).unwrap();
@@ -54,7 +54,7 @@ async fn main() {
     let mut now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
     process_start_time.set(now as f64);
 
-    let city = env::var("CITY").unwrap().to_owned();
+    let city = env::var("CITY").expect("CITY not set").to_owned();
 
     loop {
         match get_weather(&client, &params).await {
