@@ -26,10 +26,24 @@ struct OpenWeatherMapData {
 }
 
 async fn get_weather(client: &Client, params: &HashMap<&str, String>) -> Result<OpenWeatherMapData, reqwest::Error> {
+    println!("{:?}", params);
     let response = client.get(URL).query(&params).send().await?;
     let json = response.json::<OpenWeatherMapData>().await?;
     Ok(json)
 }
+
+const B: f32 = 17.368;
+const C: f32 = 238.88;
+
+fn gamma(t: f32, rh: f32) -> f32 {
+    (rh / 100.0).ln() + B * t / (C + t)
+}
+
+fn dew_point_calc(t: f32, rh: f32) -> f32 {
+    let g = gamma(t, rh);
+    C * g / (B - g)
+}
+
 
 #[tokio::main]
 async fn main() {
@@ -46,6 +60,7 @@ async fn main() {
     let client = Client::new();
 
     let temperature = register_gauge_vec!("weather_temperature", "Outside temperature in °C", &["city"]).unwrap();
+    let dew_point = register_gauge_vec!("weather_dew_point", "Outside dew point in °C", &["city"]).unwrap();
     let humidity = register_gauge_vec!("weather_humidity", "Outside humidity in %", &["city"]).unwrap();
     let pressure = register_gauge_vec!("weather_pressure", "Outside pressure in hPa", &["city"]).unwrap();
     let last_updated = register_gauge_vec!("weather_last_updated", "Last update of weather", &["city"]).unwrap();
@@ -60,10 +75,12 @@ async fn main() {
         match get_weather(&client, &params).await {
             Ok(data) => {
                 now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
-                println!("time={}, temperature={}, humidity={}, pressure={}", now, data.main.temp, data.main.humidity, data.main.pressure);
+                let d = dew_point_calc(data.main.temp, data.main.humidity as f32);
+                println!("time={}, temperature={}, humidity={}, pressure={}, dewpoint={}", now, data.main.temp, data.main.humidity, data.main.pressure, d);
                 temperature.get_metric_with_label_values(&[&city]).unwrap().set(data.main.temp as f64);
                 humidity.get_metric_with_label_values(&[&city]).unwrap().set(data.main.humidity as f64);
                 pressure.get_metric_with_label_values(&[&city]).unwrap().set(data.main.pressure as f64);
+                dew_point.get_metric_with_label_values(&[&city]).unwrap().set(d as f64);
                 last_updated.get_metric_with_label_values(&[&city]).unwrap().set(now as f64);
             }
             Err(err) => eprintln!("{}", err)

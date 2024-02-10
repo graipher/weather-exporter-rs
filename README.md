@@ -4,7 +4,7 @@ Periodically get weather information from openweathermap.org and publish it as P
 
 ## Exposed metrics
 
-Temperature, pressure, humidity and last update time.
+Temperature, pressure, humidity, dew point (approximated) and last update time.
 
 # How to run
 
