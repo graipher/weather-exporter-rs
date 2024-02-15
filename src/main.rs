@@ -54,7 +54,7 @@ async fn main() {
                 .or::<String>(Ok("600".to_string()))
                 .unwrap(),
         )
-            .unwrap(),
+        .unwrap(),
     );
     let binding = format!("0.0.0.0:{}", port).parse().unwrap();
     println!("Listening on {}", binding);
@@ -79,7 +79,7 @@ async fn main() {
         "Outside temperature in °C",
         &["city"]
     )
-        .unwrap();
+    .unwrap();
     let dew_point =
         register_gauge_vec!("weather_dew_point", "Outside dew point in °C", &["city"]).unwrap();
     let humidity =
@@ -105,7 +105,7 @@ async fn main() {
         "Info about the Rust version",
         &["rustc_version", "compile_time"]
     )
-        .unwrap();
+    .unwrap();
     rust_info
         .get_metric_with_label_values(&[rustc_version, compile_datetime])
         .unwrap()
