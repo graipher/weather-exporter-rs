@@ -20,7 +20,7 @@ docker run -it --rm \
     -e UNITS=metric \
     -e PERIOD = 600 \
     -e APPID=${OPENWEATHER_API_KEY} \
-    ghcr.io/graipher/weather-exporter-rs:v0.1.1
+    ghcr.io/graipher/weather-exporter-rs:v0.1.5
 ```
 
 ## Limitations
