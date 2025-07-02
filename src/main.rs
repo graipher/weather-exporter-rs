@@ -13,6 +13,7 @@ static URL: &str = "https://api.openweathermap.org/data/2.5/weather";
 struct Weather {
     temp: f32,
     pressure: u16,
+    grnd_level: u16,
     humidity: u8,
 }
 
@@ -86,6 +87,12 @@ async fn main() {
         register_gauge_vec!("weather_humidity", "Outside humidity in %", &["city"]).unwrap();
     let pressure =
         register_gauge_vec!("weather_pressure", "Outside pressure in hPa", &["city"]).unwrap();
+    let pressure_grnd = register_gauge_vec!(
+        "weather_pressure_grnd",
+        "Outside pressure at ground level in hPa",
+        &["city"]
+    )
+    .unwrap();
     let last_updated =
         register_gauge_vec!("weather_last_updated", "Last update of weather", &["city"]).unwrap();
     let process_start_time =
@@ -135,6 +142,10 @@ async fn main() {
                     .get_metric_with_label_values(&[&city])
                     .unwrap()
                     .set(data.main.pressure as f64);
+                pressure_grnd
+                    .get_metric_with_label_values(&[&city])
+                    .unwrap()
+                    .set(data.main.grnd_level as f64);
                 dew_point
                     .get_metric_with_label_values(&[&city])
                     .unwrap()
