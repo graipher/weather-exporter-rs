@@ -47,13 +47,11 @@ fn dew_point_calc(t: f32, rh: f32) -> f32 {
 #[tokio::main]
 async fn main() {
     let port = env::var("PORT")
-        .or::<String>(Ok("9185".to_string()))
-        .unwrap();
+        .unwrap_or("9185".to_string());
     let period = Duration::from_secs(
         from_str::<u64>(
             &env::var("PERIOD")
-                .or::<String>(Ok("600".to_string()))
-                .unwrap(),
+                .unwrap_or("600".to_string()),
         )
         .unwrap(),
     );
