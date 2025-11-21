@@ -8,6 +8,7 @@ use serde::Deserialize;
 use serde_json::from_str;
 
 static URL: &str = "https://api.openweathermap.org/data/2.5/weather";
+static AIR_POLLUTION_URL: &str = "https://api.openweathermap.org/data/2.5/air_pollution";
 
 #[derive(Debug, Deserialize)]
 struct Weather {
@@ -22,13 +23,47 @@ struct OpenWeatherMapData {
     main: Weather,
 }
 
+#[derive(Debug, Deserialize)]
+struct Components {
+    // co: f32,
+    // no: f32,
+    // no2: f32,
+    // o3: f32,
+    // so2: f32,
+    pm2_5: f32,
+    pm10: f32,
+    // nh3: f32,
+}
+
+#[derive(Debug, Deserialize)]
+struct AirPollutionData {
+    components: Components,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenWeatherMapAirPollutionData {
+    list: Vec<AirPollutionData>,
+}
+
 async fn get_weather(
     client: &Client,
     params: &HashMap<&str, String>,
 ) -> Result<OpenWeatherMapData, reqwest::Error> {
+    #[cfg(debug_assertions)]
     println!("{:?}", params);
     let response = client.get(URL).query(&params).send().await?;
     let json = response.json::<OpenWeatherMapData>().await?;
+    Ok(json)
+}
+
+async fn get_air_pollution(
+    client: &Client,
+    params: &HashMap<&str, String>,
+) -> Result<OpenWeatherMapAirPollutionData, reqwest::Error> {
+    #[cfg(debug_assertions)]
+    println!("{:?}", params);
+    let response = client.get(AIR_POLLUTION_URL).query(&params).send().await?;
+    let json = response.json::<OpenWeatherMapAirPollutionData>().await?;
     Ok(json)
 }
 
@@ -83,6 +118,18 @@ async fn main() {
     let pressure_grnd = register_gauge_vec!(
         "weather_pressure_grnd",
         "Outside pressure at ground level in hPa",
+        &["city"]
+    )
+    .unwrap();
+    let air_pollution_pm_2_5 = register_gauge_vec!(
+        "air_pollution_pm_2_5",
+        "PM2.5 concentration in µg/m³",
+        &["city"]
+    )
+    .unwrap();
+    let air_pollution_pm_10 = register_gauge_vec!(
+        "air_pollution_pm_10",
+        "PM10 concentration in µg/m³",
         &["city"]
     )
     .unwrap();
@@ -147,6 +194,23 @@ async fn main() {
                     .get_metric_with_label_values(&[&city])
                     .unwrap()
                     .set(now as f64);
+            }
+            Err(err) => eprintln!("{}", err),
+        }
+        match get_air_pollution(&client, &params).await {
+            Ok(data) => {
+                println!(
+                    "pm2_5={}, pm10={}",
+                    data.list[0].components.pm2_5, data.list[0].components.pm10
+                );
+                air_pollution_pm_2_5
+                    .get_metric_with_label_values(&[&city])
+                    .unwrap()
+                    .set(data.list[0].components.pm2_5 as f64);
+                air_pollution_pm_10
+                    .get_metric_with_label_values(&[&city])
+                    .unwrap()
+                    .set(data.list[0].components.pm10 as f64);
             }
             Err(err) => eprintln!("{}", err),
         }
