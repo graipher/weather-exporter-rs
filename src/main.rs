@@ -133,8 +133,14 @@ async fn main() {
         &["city"]
     )
     .unwrap();
-    let last_updated =
+    let weather_last_updated =
         register_gauge_vec!("weather_last_updated", "Last update of weather", &["city"]).unwrap();
+    let air_pollution_last_updated = register_gauge_vec!(
+        "air_pollution_last_updated",
+        "Last update of air pollution",
+        &["city"]
+    )
+    .unwrap();
     let process_start_time =
         register_gauge!("process_start_time_seconds", "Start time of the process").unwrap();
     let mut now = SystemTime::now()
@@ -190,7 +196,7 @@ async fn main() {
                     .get_metric_with_label_values(&[&city])
                     .unwrap()
                     .set(d as f64);
-                last_updated
+                weather_last_updated
                     .get_metric_with_label_values(&[&city])
                     .unwrap()
                     .set(now as f64);
@@ -199,9 +205,13 @@ async fn main() {
         }
         match get_air_pollution(&client, &params).await {
             Ok(data) => {
+                now = SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs();
                 println!(
-                    "pm2_5={}, pm10={}",
-                    data.list[0].components.pm2_5, data.list[0].components.pm10
+                    "time={}, pm2_5={}, pm10={}",
+                    now, data.list[0].components.pm2_5, data.list[0].components.pm10
                 );
                 air_pollution_pm_2_5
                     .get_metric_with_label_values(&[&city])
@@ -211,6 +221,10 @@ async fn main() {
                     .get_metric_with_label_values(&[&city])
                     .unwrap()
                     .set(data.list[0].components.pm10 as f64);
+                air_pollution_last_updated
+                    .get_metric_with_label_values(&[&city])
+                    .unwrap()
+                    .set(now as f64);
             }
             Err(err) => eprintln!("{}", err),
         }

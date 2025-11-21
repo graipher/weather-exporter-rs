@@ -1,10 +1,13 @@
 # Weather Exporter
 
-Periodically get weather information from openweathermap.org and publish it as Prometheus metrics.
+Periodically get weather and air pollutin information from openweathermap.org and publish it as Prometheus metrics.
+Uses [https://openweathermap.org/current](https://openweathermap.org/current) for weather and [https://openweathermap.org/api/air-pollution](https://openweathermap.org/api/air-pollution) for air pollution data.
 
 ## Exposed metrics
 
-Temperature, pressure, humidity, dew point (approximated) and last update time.
+Temperature, pressure, humidity, dew point (approximated) and last update time for weather.
+
+PM2.5, PM10 and last update time for air pollutionl.
 
 # How to run
 
@@ -18,9 +21,9 @@ docker run -it --rm \
     -e LON=6.958143531830011 \
     -e CITY=Cologne \
     -e UNITS=metric \
-    -e PERIOD = 600 \
+    -e PERIOD=600 \
     -e APPID=${OPENWEATHER_API_KEY} \
-    ghcr.io/graipher/weather-exporter-rs:v0.1.5
+    ghcr.io/graipher/weather-exporter-rs:v0.2.1
 ```
 
 ## Limitations
