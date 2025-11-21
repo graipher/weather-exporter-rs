@@ -8,7 +8,6 @@ lto = true
 codegen-units = 1
 opt-level = 3
 
-
 [dependencies]
 reqwest = { version = "0.12.12", features = ["json"] }
 serde_json = "1.0.140"
