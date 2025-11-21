@@ -34,7 +34,13 @@ COPY ./src /app/src/
 # * Rust here is a bit fiddly, so we'll touch the files (even though we copied over them) to force a new build
 RUN --mount=type=cache,target=/usr/local/cargo/registry touch /app/src/main.rs && cargo build --release
 
-FROM gcr.io/distroless/cc-debian13
+FROM gcr.io/distroless/cc-debian13 AS amd64-runtime
+COPY --from=builder /lib/x86_64-linux-gnu/libzstd.so.1 /lib/x86_64-linux-gnu/libzstd.so.1
+
+FROM gcr.io/distroless/cc-debian13 AS arm64-runtime
+COPY --from=builder /lib/aarch64-linux-gnu/libzstd.so.1 /lib/aarch64-linux-gnu/libzstd.so.1
+
+FROM ${TARGETARCH}-runtime
 
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
