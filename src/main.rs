@@ -21,6 +21,7 @@ struct Weather {
 #[derive(Debug, Deserialize)]
 struct OpenWeatherMapData {
     main: Weather,
+    dt: u64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -37,6 +38,7 @@ struct Components {
 
 #[derive(Debug, Deserialize)]
 struct AirPollutionData {
+    dt: u64,
     components: Components,
 }
 
@@ -143,7 +145,7 @@ async fn main() {
     .unwrap();
     let process_start_time =
         register_gauge!("process_start_time_seconds", "Start time of the process").unwrap();
-    let mut now = SystemTime::now()
+    let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
         .as_secs();
@@ -167,14 +169,10 @@ async fn main() {
     loop {
         match get_weather(&client, &params).await {
             Ok(data) => {
-                now = SystemTime::now()
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs();
                 let d = dew_point_calc(data.main.temp, data.main.humidity as f32);
                 println!(
                     "time={}, temperature={}, humidity={}, pressure={}, dewpoint={}",
-                    now, data.main.temp, data.main.humidity, data.main.pressure, d
+                    data.dt, data.main.temp, data.main.humidity, data.main.pressure, d
                 );
                 temperature
                     .get_metric_with_label_values(&[&city])
@@ -199,19 +197,15 @@ async fn main() {
                 weather_last_updated
                     .get_metric_with_label_values(&[&city])
                     .unwrap()
-                    .set(now as f64);
+                    .set(data.dt as f64);
             }
             Err(err) => eprintln!("{}", err),
         }
         match get_air_pollution(&client, &params).await {
             Ok(data) => {
-                now = SystemTime::now()
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs();
                 println!(
                     "time={}, pm2_5={}, pm10={}",
-                    now, data.list[0].components.pm2_5, data.list[0].components.pm10
+                    data.list[0].dt, data.list[0].components.pm2_5, data.list[0].components.pm10
                 );
                 air_pollution_pm_2_5
                     .get_metric_with_label_values(&[&city])
@@ -224,7 +218,7 @@ async fn main() {
                 air_pollution_last_updated
                     .get_metric_with_label_values(&[&city])
                     .unwrap()
-                    .set(now as f64);
+                    .set(data.list[0].dt as f64);
             }
             Err(err) => eprintln!("{}", err),
         }
