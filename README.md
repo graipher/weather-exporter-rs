@@ -1,13 +1,13 @@
 # Weather Exporter
 
-Periodically get weather and air pollutin information from openweathermap.org and publish it as Prometheus metrics.
+Periodically get weather and air pollution information from openweathermap.org and publish it as Prometheus metrics.
 Uses [https://openweathermap.org/current](https://openweathermap.org/current) for weather and [https://openweathermap.org/api/air-pollution](https://openweathermap.org/api/air-pollution) for air pollution data.
 
 ## Exposed metrics
 
 Temperature, pressure, humidity, dew point (approximated) and last update time for weather.
 
-PM2.5, PM10 and last update time for air pollutionl.
+PM2.5, PM10 and last update time for air pollution.
 
 # How to run
 
