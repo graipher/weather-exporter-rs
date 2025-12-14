@@ -4,82 +4,12 @@ use std::time::{Duration, SystemTime};
 
 use prometheus_exporter::{self, prometheus::register_gauge, prometheus::register_gauge_vec};
 use reqwest::Client;
-use serde::Deserialize;
 use serde_json::from_str;
 
-static URL: &str = "https://api.openweathermap.org/data/2.5/weather";
-static AIR_POLLUTION_URL: &str = "https://api.openweathermap.org/data/2.5/air_pollution";
-
-#[derive(Debug, Deserialize)]
-struct Weather {
-    temp: f32,
-    pressure: u16,
-    grnd_level: u16,
-    humidity: u8,
-}
-
-#[derive(Debug, Deserialize)]
-struct OpenWeatherMapData {
-    main: Weather,
-    dt: u64,
-}
-
-#[derive(Debug, Deserialize)]
-struct Components {
-    // co: f32,
-    // no: f32,
-    // no2: f32,
-    // o3: f32,
-    // so2: f32,
-    pm2_5: f32,
-    pm10: f32,
-    // nh3: f32,
-}
-
-#[derive(Debug, Deserialize)]
-struct AirPollutionData {
-    dt: u64,
-    components: Components,
-}
-
-#[derive(Debug, Deserialize)]
-struct OpenWeatherMapAirPollutionData {
-    list: Vec<AirPollutionData>,
-}
-
-async fn get_weather(
-    client: &Client,
-    params: &HashMap<&str, String>,
-) -> Result<OpenWeatherMapData, reqwest::Error> {
-    #[cfg(debug_assertions)]
-    println!("{:?}", params);
-    let response = client.get(URL).query(&params).send().await?;
-    let json = response.json::<OpenWeatherMapData>().await?;
-    Ok(json)
-}
-
-async fn get_air_pollution(
-    client: &Client,
-    params: &HashMap<&str, String>,
-) -> Result<OpenWeatherMapAirPollutionData, reqwest::Error> {
-    #[cfg(debug_assertions)]
-    println!("{:?}", params);
-    let response = client.get(AIR_POLLUTION_URL).query(&params).send().await?;
-    let json = response.json::<OpenWeatherMapAirPollutionData>().await?;
-    Ok(json)
-}
-
-const B: f32 = 17.368;
-const C: f32 = 238.88;
-
-fn gamma(t: f32, rh: f32) -> f32 {
-    (rh / 100.0).ln() + B * t / (C + t)
-}
-
-fn dew_point_calc(t: f32, rh: f32) -> f32 {
-    let g = gamma(t, rh);
-    C * g / (B - g)
-}
+mod openweathermap;
+mod utils;
+use crate::openweathermap::{get_air_pollution, get_weather};
+use crate::utils::dew_point_calc;
 
 #[tokio::main]
 async fn main() {
@@ -92,17 +22,14 @@ async fn main() {
     println!("Updating every {:?}", period);
     let exporter = prometheus_exporter::start(binding).unwrap();
 
-    let mut params: HashMap<&str, String> = HashMap::new();
-    params.insert("lat", env::var("LAT").expect("LAT not set").to_owned());
-    params.insert("lon", env::var("LON").expect("LON not set").to_owned());
-    params.insert(
-        "units",
-        env::var("UNITS").expect("UNITS not set").to_owned(),
-    );
-    params.insert(
-        "appid",
-        env::var("APPID").expect("APPID not set").to_owned(),
-    );
+    let params: HashMap<&str, String> = vec![
+        ("lat", env::var("LAT").expect("LAT not set")),
+        ("lon", env::var("LON").expect("LON not set")),
+        ("units", env::var("UNITS").unwrap_or("metric".to_string())),
+        ("appid", env::var("APPID").expect("APPID not set")),
+    ]
+    .into_iter()
+    .collect();
     let client = Client::new();
 
     let temperature = register_gauge_vec!(
