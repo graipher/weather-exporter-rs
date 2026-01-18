@@ -19,8 +19,6 @@ Run with Docker:
 docker run -it --rm \
     -e LAT=50.941311520039356 \
     -e LON=6.958143531830011 \
-    -e CITY=Cologne \
-    -e UNITS=metric \
     -e PERIOD=600 \
     -e APPID=${OPENWEATHER_API_KEY} \
     ghcr.io/graipher/weather-exporter-rs:latest

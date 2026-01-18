@@ -25,7 +25,7 @@ async fn main() {
     let params: HashMap<&str, String> = vec![
         ("lat", env::var("LAT").expect("LAT not set")),
         ("lon", env::var("LON").expect("LON not set")),
-        ("units", env::var("UNITS").unwrap_or("metric".to_string())),
+        ("units", "metric".to_string()),
         ("appid", env::var("APPID").expect("APPID not set")),
     ]
     .into_iter()
@@ -36,6 +36,30 @@ async fn main() {
         "weather_temperature",
         "Outside temperature in °C",
         &["city"]
+    )
+    .unwrap();
+    let temperature_feels_like = register_gauge_vec!(
+        "weather_temperature_feels_like",
+        "Outside temperature feels-like in °C",
+        &["city"]
+    )
+    .unwrap();
+    let temperature_min = register_gauge_vec!(
+        "weather_temperature_min",
+        "Outside temperature min in °C",
+        &["city"]
+    )
+    .unwrap();
+    let temperature_max = register_gauge_vec!(
+        "weather_temperature_max",
+        "Outside temperature max in °C",
+        &["city"]
+    )
+    .unwrap();
+    let weather_description = register_gauge_vec!(
+        "weather_description",
+        "Weather description",
+        &["city", "main", "description"]
     )
     .unwrap();
     let dew_point =
@@ -78,8 +102,6 @@ async fn main() {
         .as_secs();
     process_start_time.set(now as f64);
 
-    let city = env::var("CITY").expect("CITY not set").to_owned();
-
     let compile_datetime = compile_time::datetime_str!();
     let rustc_version = compile_time::rustc_version_str!();
     let rust_info = register_gauge_vec!(
@@ -92,10 +114,11 @@ async fn main() {
         .get_metric_with_label_values(&[rustc_version, compile_datetime, env!("CARGO_PKG_VERSION")])
         .unwrap()
         .set(1.);
-
+    let mut city = "Unknown".to_string();
     loop {
         match get_weather(&client, &params).await {
             Ok(data) => {
+                city = data.name;
                 let d = dew_point_calc(data.main.temp, data.main.humidity as f32);
                 println!(
                     "time={}, temperature={}, humidity={}, pressure={}, dewpoint={}",
@@ -105,6 +128,18 @@ async fn main() {
                     .get_metric_with_label_values(&[&city])
                     .unwrap()
                     .set(data.main.temp as f64);
+                temperature_feels_like
+                    .get_metric_with_label_values(&[&city])
+                    .unwrap()
+                    .set(data.main.feels_like as f64);
+                temperature_min
+                    .get_metric_with_label_values(&[&city])
+                    .unwrap()
+                    .set(data.main.temp_min as f64);
+                temperature_max
+                    .get_metric_with_label_values(&[&city])
+                    .unwrap()
+                    .set(data.main.temp_max as f64);
                 humidity
                     .get_metric_with_label_values(&[&city])
                     .unwrap()
@@ -121,6 +156,14 @@ async fn main() {
                     .get_metric_with_label_values(&[&city])
                     .unwrap()
                     .set(d as f64);
+                weather_description
+                    .get_metric_with_label_values(&[
+                        &city,
+                        &data.weather[0].main,
+                        &data.weather[0].description,
+                    ])
+                    .unwrap()
+                    .set(1.0_f64);
                 weather_last_updated
                     .get_metric_with_label_values(&[&city])
                     .unwrap()

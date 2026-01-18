@@ -7,7 +7,18 @@ static AIR_POLLUTION_URL: &str = "https://api.openweathermap.org/data/2.5/air_po
 
 #[derive(Debug, Deserialize)]
 pub struct Weather {
+    // pub id: u16,
+    pub main: String,
+    pub description: String,
+    // pub icon: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Main {
     pub temp: f32,
+    pub feels_like: f32,
+    pub temp_min: f32,
+    pub temp_max: f32,
     pub pressure: u16,
     pub grnd_level: u16,
     pub humidity: u8,
@@ -15,8 +26,10 @@ pub struct Weather {
 
 #[derive(Debug, Deserialize)]
 pub struct OpenWeatherMapData {
-    pub main: Weather,
+    pub main: Main,
+    pub weather: Vec<Weather>,
     pub dt: u64,
+    pub name: String,
 }
 
 #[derive(Debug, Deserialize)]
