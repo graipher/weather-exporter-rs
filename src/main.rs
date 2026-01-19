@@ -156,6 +156,7 @@ async fn main() {
                     .get_metric_with_label_values(&[&city])
                     .unwrap()
                     .set(d as f64);
+                weather_description.reset();
                 weather_description
                     .get_metric_with_label_values(&[
                         &city,
