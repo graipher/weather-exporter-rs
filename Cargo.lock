@@ -1591,7 +1591,7 @@ dependencies = [
 
 [[package]]
 name = "weather-exporter-rs"
-version = "0.2.11"
+version = "0.2.12"
 dependencies = [
  "compile-time",
  "prometheus_exporter",
